@@ -1,11 +1,11 @@
 #property copyright "Vyacheslav Demidyuk"
 #property link      ""
 
-#property version   "1.6"
+#property version   "1.61"
 #property description "MtApi (MT5) connection expert"
 
 #include <json.mqh>
-#include <Trade\SymbolInfo.mqh>
+#include <Trade/SymbolInfo.mqh>
 #include <trade/trade.mqh>
 
 #import "MT5Connector.dll"
@@ -50,7 +50,8 @@ enum LockTickType
    LOCK_EVERY_CANDLE
 };
 
-input int Port = 8228;
+int cnt = 0;
+input int Port = 8304;
 input LockTickType BacktestingLockTicks = NO_LOCK;
 input bool Enable_OnBookEvent = false;                 // for faster testing
 input bool Enable_OnTickEvent = false;                 // for faster testing
@@ -77,8 +78,31 @@ int OnInit()
 
 double OnTester()
 {
-    Print("OnTester");
-    return 0;
+#ifdef __DEBUG_LOG__
+   PrintFormat("%s: Start", __FUNCTION__);
+#endif 
+   printf(__FUNCSIG__);
+   int code = 1;
+   MtDeInitEvent* deinit = new MtDeInitEvent(code);
+   SendMtEvent(ON_DEINIT_EVENT,deinit);
+   delete deinit;
+   
+   bool noPrint = false;
+   
+   unsigned int viSleepUntilTick = GetTickCount() + 2000; //100 milliseconds
+   while(GetTickCount() < viSleepUntilTick) 
+        {
+           if (!noPrint){
+            printf("Sleeping 1000 msec ...");
+            noPrint = true; }
+             
+        }  // necessary for correct detection deinit in matlab
+    
+ #ifdef __DEBUG_LOG__
+   PrintFormat("%s: End", __FUNCTION__);
+#endif    
+     
+   return 0;
 }
 
 void OnDeinit(const int reason)
@@ -109,14 +133,16 @@ void OnTick()
       
       _last_bar_open_time = lastbar_time;
    }
+   if (Enable_OnTickEvent)
+    {
+      MqlTick last_tick;
+      SymbolInfoTick(Symbol(),last_tick);
 
-   MqlTick last_tick;
-   SymbolInfoTick(Symbol(),last_tick);
-   
-   MtOnTickEvent * tick_event = new MtOnTickEvent(symbol, last_tick);
-   SendMtEvent(ON_TICK_EVENT, tick_event);
-   delete tick_event; 
-   
+      MtOnTickEvent * tick_event = new MtOnTickEvent(symbol, last_tick);
+      SendMtEvent(ON_TICK_EVENT, tick_event);
+      delete tick_event; 
+   }
+
    if (IsTesting())
    {
       if (BacktestingLockTicks == LOCK_EVERY_TICK ||
@@ -139,7 +165,7 @@ void  OnTradeTransaction(
    const MqlTradeResult&         result        // result structure 
    
    )
-{
+   {
 #ifdef __DEBUG_LOG__
    PrintFormat("%s:", __FUNCTION__);
 #endif 
@@ -149,18 +175,21 @@ if(Enable_OnTradeTransaction)
  { 
    MtOnTradeTransactionEvent* trans_event = new MtOnTradeTransactionEvent(trans, request, result);
    SendMtEvent(ON_TRADE_TRANSACTION_EVENT, trans_event);
-   delete trans_event;
-}
+   delete trans_event;}
+ 
+ }
 
 void OnBookEvent(const string& symbol)
 {
-#ifdef __DEBUG_LOG__
-   PrintFormat("%s: %s", __FUNCTION__, symbol);
-#endif 
-
-   MtOnBookEvent * book_event = new MtOnBookEvent(symbol);
-   SendMtEvent(ON_BOOK_EVENT, book_event);
-   delete book_event;
+   #ifdef __DEBUG_LOG__
+      PrintFormat("%s: %s", __FUNCTION__, symbol);
+   #endif 
+   if(Enable_OnBookEvent)
+   {
+      MtOnBookEvent * book_event = new MtOnBookEvent(symbol);
+      SendMtEvent(ON_BOOK_EVENT, book_event);
+      delete book_event;
+   }
 }
 
 int preinit()
@@ -7326,7 +7355,8 @@ enum MtEventTypes
    ON_BOOK_EVENT              = 2,
    ON_TICK_EVENT              = 3,
    ON_LAST_TIME_BAR_EVENT     = 4,
-   ON_LOCK_TICKS_EVENT        = 5
+   ON_LOCK_TICKS_EVENT        = 5,
+   ON_DEINIT_EVENT            = 6
 };
 
 class MtEvent
