@@ -55,6 +55,7 @@ namespace MtApi5
             _mtEventHandlers[Mt5EventTypes.OnTradeTransaction] = ReceivedOnTradeTransactionEvent;
             _mtEventHandlers[Mt5EventTypes.OnLastTimeBar] = ReceivedOnLastTimeBarEvent;
             _mtEventHandlers[Mt5EventTypes.OnLockTicks] = ReceivedOnLockTicksEvent;
+            _mtEventHandlers[Mt5EventTypes.OnTesterDeInit] = ReceivedOnTesterDeInitEvent; 
         }
 
         ///<summary>
@@ -65,6 +66,7 @@ namespace MtApi5
         public void BeginConnect(string host, int port)
         {
             Task.Factory.StartNew(() => Connect(host, port));
+            
         }
 
         ///<summary>
@@ -3129,6 +3131,7 @@ namespace MtApi5
         public event EventHandler<Mt5BookEventArgs> OnBookEvent;
         public event EventHandler<Mt5TimeBarArgs> OnLastTimeBar;
         public event EventHandler<Mt5LockTicksEventArgs> OnLockTicks;
+        public event EventHandler<Mt5TesterDeInitEventArgs> OnTesterDeInit; 
         #endregion
 
         #region Private Methods
@@ -3194,6 +3197,7 @@ namespace MtApi5
             if (state == Mt5ConnectionState.Connected)
             {
                 OnConnected();
+                Log.Debug($"xxx connected");
             }
         }
 
@@ -3202,10 +3206,12 @@ namespace MtApi5
         {
             var eventType = (Mt5EventTypes)e.EventType;
             _mtEventHandlers[eventType](e.ExpertHandle, e.Payload);
+            Log.Debug($"Event recieved: Type = {eventType}");
         }
 
         private void ReceivedOnTradeTransactionEvent(int expertHandler, string payload)
         {
+            Log.Debug($"TransActionEvent recieved: ");
             var e = JsonConvert.DeserializeObject<OnTradeTransactionEvent>(payload);
             OnTradeTransaction?.Invoke(this, new Mt5TradeTransactionEventArgs
             {
@@ -3214,6 +3220,7 @@ namespace MtApi5
                 Request = e.Request,
                 Result = e.Result
             });
+            Log.Debug($"TransActionEvent invoked: {e.Trans}");
         }
 
         private void ReceivedOnBookEvent(int expertHandler, string payload)
@@ -3253,6 +3260,12 @@ namespace MtApi5
             OnLockTicks?.Invoke(this, new Mt5LockTicksEventArgs(e.Instrument));
         }
 
+
+        private void ReceivedOnTesterDeInitEvent(int expertHandler, string payload)
+        {
+            var e = JsonConvert.DeserializeObject<OnTesterDeInitEvent>(payload);
+            OnTesterDeInit?.Invoke(this,new Mt5TesterDeInitEventArgs(e.DeInitCode));
+        }
         private void Connect(string host, int port)
         {
             var client = new MtClient(host, port);
