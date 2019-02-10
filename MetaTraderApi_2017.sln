@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.329
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestApiClientUI", "TestClients\TestApiClientUI\TestApiClientUI.csproj", "{663CC515-EAAE-47D4-8933-5008C2DA1160}"
 EndProject
@@ -218,6 +218,7 @@ Global
 		{1497E285-C228-490B-9638-565E118548FB}.Release|Win32.ActiveCfg = Release|x86
 		{1497E285-C228-490B-9638-565E118548FB}.Release|Win32.Build.0 = Release|x86
 		{1497E285-C228-490B-9638-565E118548FB}.Release|x64.ActiveCfg = Release|x64
+		{1497E285-C228-490B-9638-565E118548FB}.Release|x64.Build.0 = Release|x64
 		{1497E285-C228-490B-9638-565E118548FB}.Release|x86.ActiveCfg = Release|x86
 		{1497E285-C228-490B-9638-565E118548FB}.Release|x86.Build.0 = Release|x86
 		{8E63046B-56E5-4623-8808-558AD72A8F2B}.Debug|Any CPU.ActiveCfg = Debug|x86
@@ -240,5 +241,8 @@ Global
 		{663CC515-EAAE-47D4-8933-5008C2DA1160} = {B91FF338-E05D-4EF1-948B-A2376DB37ECA}
 		{38B9C657-BC2F-44F0-8824-54B31F2A64F5} = {B91FF338-E05D-4EF1-948B-A2376DB37ECA}
 		{EB7C228D-9494-4985-845E-B8312450DF3D} = {B91FF338-E05D-4EF1-948B-A2376DB37ECA}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9D63F9FD-53BA-4468-B868-18C5C8C25D50}
 	EndGlobalSection
 EndGlobal
