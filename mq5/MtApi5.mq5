@@ -52,6 +52,9 @@ enum LockTickType
 
 input int Port = 8228;
 input LockTickType BacktestingLockTicks = NO_LOCK;
+input bool Enable_OnBookEvent = false;                 // for faster testing
+input bool Enable_OnTickEvent = false;                 // for faster testing
+input bool Enable_OnTradeTransaction = false;          // for faster testing
 
 int ExpertHandle;
 
@@ -80,6 +83,7 @@ double OnTester()
 
 void OnDeinit(const int reason)
 {
+   printf(__FUNCSIG__);
    deinit();
 }
 
@@ -133,12 +137,16 @@ void  OnTradeTransaction(
    const MqlTradeTransaction&    trans,        // trade transaction structure 
    const MqlTradeRequest&        request,      // request structure 
    const MqlTradeResult&         result        // result structure 
+   
    )
 {
 #ifdef __DEBUG_LOG__
    PrintFormat("%s:", __FUNCTION__);
 #endif 
    
+   
+if(Enable_OnTradeTransaction)
+ { 
    MtOnTradeTransactionEvent* trans_event = new MtOnTradeTransactionEvent(trans, request, result);
    SendMtEvent(ON_TRADE_TRANSACTION_EVENT, trans_event);
    delete trans_event;
@@ -250,6 +258,7 @@ int init()
 
 int deinit() 
 {
+  printf(__FUNCSIG__);
    if (isCrashed == 0) 
    {
       if (!deinitExpert(ExpertHandle, _error)) 
@@ -259,6 +268,8 @@ int deinit()
          return (1);
       }
       Print("Expert was deinitialized.");
+      
+      
    }
    
    return (0);
@@ -266,6 +277,7 @@ int deinit()
 
 void OnTimer()
 {
+  
    while(true)
    {
       int executedCommand = executeCommand();
@@ -7431,6 +7443,27 @@ public:
 private:
    string _symbol;
 };
+
+
+
+class MtDeInitEvent: public MtEvent
+{
+public:
+  MtDeInitEvent(int code)
+  {
+   _code = code;
+  }
+  
+ virtual JSONObject* CreateJson()
+   {
+      JSONObject *jo = new JSONObject();
+      jo.put("DeInitCode", new JSONNumber(_code));
+      return jo;
+   }
+private:
+  int _code;
+};
+
 
 void SendMtEvent(MtEventTypes eventType, MtEvent* mtEvent)
 {
