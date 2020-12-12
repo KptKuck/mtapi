@@ -48,7 +48,12 @@ namespace MtApi5
         #region Public Methods
         public MtApi5Client()
         {
-            LogConfigurator.Setup(LogProfileName);
+#if (DEBUG)
+            const LogLevel logLevel = LogLevel.Debug;
+#else
+            const LogLevel logLevel = LogLevel.Info;
+#endif
+            LogConfigurator.Setup(LogProfileName, logLevel);
 
             _mtEventHandlers[Mt5EventTypes.OnBookEvent] = ReceivedOnBookEvent;
             _mtEventHandlers[Mt5EventTypes.OnTick] = ReceivedOnTickEvent;
@@ -64,6 +69,7 @@ namespace MtApi5
         ///<param name="port">Port of host connection (default 8222) </param>
         public void BeginConnect(string host, int port)
         {
+            Log.Info($"BeginConnect: host = {host}, port = {port}");
             Task.Factory.StartNew(() => Connect(host, port));
         }
 
@@ -73,6 +79,7 @@ namespace MtApi5
         ///<param name="port">Port of host connection (default 8222) </param>
         public void BeginConnect(int port)
         {
+            Log.Info($"BeginConnect: port = {port}");
             Task.Factory.StartNew(() => Connect(port));
         }
 
@@ -81,6 +88,7 @@ namespace MtApi5
         ///</summary>
         public void BeginDisconnect()
         {
+            Log.Info("BeginDisconnect called.");
             Task.Factory.StartNew(() => Disconnect(false));
         }
 
@@ -1718,6 +1726,18 @@ namespace MtApi5
         }
 
         ///<summary>
+        ///Returns the ID of the chart.
+        ///</summary>
+        ///<param name="expertHandle">Handle of expert linked to the chart.</param>
+        ///<returns>
+        /// Value of long type.
+        ///</returns>
+        public long ChartId(int expertHandle)
+        {
+            return SendCommand<long>(Mt5CommandType.ChartId, null, null, expertHandle);
+        }
+
+        ///<summary>
         ///This function calls a forced redrawing of a specified chart.
         ///</summary>
         ///<param name="chartId">Chart ID. 0 means the current chart.</param>
@@ -3331,6 +3351,8 @@ namespace MtApi5
                 {
                     client.Dispose();
                     message = string.IsNullOrEmpty(client.Host) ? $"Failed connection to localhost:{client.Port}. {e.Message}" : $"Failed connection to {client.Host}:{client.Port}. {e.Message}";
+
+                    Log.Warn(message);
                 }
 
                 if (state == Mt5ConnectionState.Connected)
@@ -3343,6 +3365,8 @@ namespace MtApi5
                     _client.ServerFailed += _client_ServerFailed;
                     _client.MtEventReceived += _client_MtEventReceived;
                     message = string.IsNullOrEmpty(client.Host) ? $"Connected to localhost:{client.Port}" : $"Connected to  { client.Host}:{client.Port}";
+
+                    Log.Info(message);
                 }
 
                 _connectionState = state;
@@ -3457,35 +3481,41 @@ namespace MtApi5
                 _connectionState = state;
             }
 
+            Log.Info(message);
+
             ConnectionStateChanged?.Invoke(this, new Mt5ConnectionEventArgs(state, message));
         }
 
-        private T SendCommand<T>(Mt5CommandType commandType, ArrayList commandParameters, Dictionary<string, object> namedParams = null)
+        private T SendCommand<T>(Mt5CommandType commandType, ArrayList commandParameters, Dictionary<string, object> namedParams = null, int? executor = null)
         {
             MtResponse response;
 
             var client = Client;
             if (client == null)
             {
+                Log.Warn("SendCommand: No connection");
                 throw new Exception("No connection");
             }
 
             try
             {
-                response = client.SendCommand((int)commandType, commandParameters, namedParams, ExecutorHandle);
+                response = client.SendCommand((int)commandType, commandParameters, namedParams, executor ?? ExecutorHandle);
             }
             catch (CommunicationException ex)
             {
+                Log.Warn($"SendCommand: {ex.Message}");
                 throw new Exception(ex.Message, ex);
             }
 
             if (response == null)
             {
+                Log.Warn("SendCommand: Response from MetaTrader is null");
                 throw new ExecutionException(ErrorCode.ErrCustom, "Response from MetaTrader is null");
             }
 
             if (response.ErrorCode != 0)
             {
+                Log.Warn($"SendCommand: ErrorCode = {response.ErrorCode}. {response}");
                 throw new ExecutionException((ErrorCode)response.ErrorCode, response.ToString());
             }
 
@@ -3509,12 +3539,14 @@ namespace MtApi5
 
             if (res == null)
             {
+                Log.Warn("SendRequest: Response from MetaTrader is null");
                 throw new ExecutionException(ErrorCode.ErrCustom, "Response from MetaTrader is null");
             }
 
             var response = JsonConvert.DeserializeObject<Response<T>>(res);
             if (response.ErrorCode != 0)
             {
+                Log.Warn($"SendRequest: ErrorCode = {response.ErrorCode}. {response}");
                 throw new ExecutionException((ErrorCode)response.ErrorCode, response.ErrorMessage);
             }
 
