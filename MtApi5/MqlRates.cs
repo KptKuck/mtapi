@@ -3,6 +3,7 @@ using System;
 
 namespace MtApi5
 {
+    [Serializable()]
     public class MqlRates
     {
         public MqlRates(DateTime time, double open, double high, double low, double close, long tick_volume, int spread, long real_volume)
